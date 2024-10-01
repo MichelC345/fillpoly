@@ -13,12 +13,12 @@ function isPointInPolygon(x, y, polygon) {
   return inside;
 }
 
-
 const App = () => {
   const [points, setPoints] = useState([]); // Current points for the polygon
   const [polygons, setPolygons] = useState([]); // Store all completed polygons
-  const [selectedPolygonIndex, setSelectedPolygonIndex] = useState(null); // Track selected polygon
+  const [selectedPolygonIndices, setSelectedPolygonIndices] = useState([]); // Track selected polygons
   const [fillColor, setFillColor] = useState("rgba(0, 150, 255, 0.5)"); // Default fill color
+  const [strokeColor, setStrokeColor] = useState("yellow"); // Default edge color
   const [isDrawing, setIsDrawing] = useState(false); // Toggle drawing mode
   const [polygonCompleted, setPolygonCompleted] = useState(false); // Flag for completed polygon
 
@@ -28,19 +28,38 @@ const App = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     redrawAllPolygons(ctx);
-  }, [polygons, points]);
+  }, [polygons, points, selectedPolygonIndices]);
 
   const redrawAllPolygons = (ctx) => {
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear canvas
-    polygons.forEach((polygon, index) => drawPolygon(ctx, polygon.points, true, index === selectedPolygonIndex ? "rgba(255, 255, 0, 0.5)" : polygon.fillColor)); // Redraw all completed polygons
-    drawPolygon(ctx, points, polygonCompleted, fillColor); // Draw the polygon being created
+    polygons.forEach((polygon, index) => {
+      const isSelected = selectedPolygonIndices.includes(index);
+      drawPolygon(
+        ctx,
+        polygon.points,
+        true,
+        polygon.fillColor,
+        polygon.strokeColor,
+        isSelected
+      ); // Redraw all completed polygons with selection effect
+    });
+    drawPolygon(ctx, points, polygonCompleted, fillColor, strokeColor, false); // Draw the polygon being created
   };
 
-  const drawPolygon = (ctx, pointsArray, completed, color) => {
+  const deleteSelectedPolygons = () => {
+    // Remove all polygons whose indices are in selectedPolygonIndices
+    const updatedPolygons = polygons.filter(
+      (polygon, index) => !selectedPolygonIndices.includes(index)
+    );
+    setPolygons(updatedPolygons);
+    setSelectedPolygonIndices([]); // Clear selection
+  };
+
+
+  const drawPolygon = (ctx, pointsArray, completed, fill, stroke, isSelected) => {
     if (pointsArray.length < 2) return;
 
     ctx.beginPath();
-    console.log("draw polygon", pointsArray[0], pointsArray);
     ctx.moveTo(pointsArray[0].x, pointsArray[0].y);
 
     for (let i = 1; i < pointsArray.length; i++) {
@@ -48,35 +67,73 @@ const App = () => {
     }
 
     if (completed) {
-      console.log("completando polígono", pointsArray);
       ctx.lineTo(pointsArray[0].x, pointsArray[0].y); // Close polygon
-      ctx.fillStyle = color;
+      ctx.fillStyle = fill;
       ctx.fill();
     }
 
+    // Apply visual effects for selected polygon
+    if (isSelected) {
+      ctx.lineWidth = 5; // Thicker stroke for selected polygon
+      ctx.strokeStyle = "red"; // Change the stroke color for selected polygon
+      ctx.shadowBlur = 15; // Add shadow/glow effect
+      ctx.shadowColor = "rgba(255, 0, 0, 0.8)"; // Glow color
+    } else {
+      ctx.lineWidth = 2; // Normal stroke width
+      ctx.strokeStyle = stroke; // Regular stroke color
+      ctx.shadowBlur = 0; // No shadow for non-selected polygons
+    }
+
     ctx.stroke();
+
+    // Draw circles at each point and label them alphabetically
+    pointsArray.forEach((point, index) => {
+      drawPoint(ctx, point.x, point.y, index);
+    });
+  };
+
+  const drawPoint = (ctx, x, y, index) => {
+    const radius = 5; // Circle radius for each point
+    const label = String.fromCharCode(65 + index); // Convert index to a letter (A, B, C...)
+
+    // Draw the circle at the point
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = "red"; // Color for the point circle
+    ctx.fill();
+    ctx.stroke(); // Outline the circle
+
+    // Draw the label next to the point
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "black";
+    ctx.fillText(label, x + 8, y - 8); // Offset the label to appear next to the point
   };
 
   const handleCanvasClick = (event) => {
-    //if (!isDrawing || polygonCompleted) return;
-
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
     // Check if the click is inside an existing polygon
-    let selectedIndex = null;
+    let clickedPolygonIndex = null;
     polygons.forEach((polygon, index) => {
       if (isPointInPolygon(x, y, polygon.points)) {
-        selectedIndex = index;
+        clickedPolygonIndex = index;
       }
     });
 
-    console.log("selectedIndex", selectedIndex);
-    if (selectedIndex !== null) {
-      // A polygon is selected
-      setSelectedPolygonIndex(selectedIndex);
+    if (clickedPolygonIndex !== null) {
+      // A polygon is clicked, toggle its selection state
+      if (selectedPolygonIndices.includes(clickedPolygonIndex)) {
+        // If it's already selected, deselect it
+        setSelectedPolygonIndices(
+          selectedPolygonIndices.filter((i) => i !== clickedPolygonIndex)
+        );
+      } else {
+        // Otherwise, select it
+        setSelectedPolygonIndices([...selectedPolygonIndices, clickedPolygonIndex]);
+      }
     } else {
       // Add new point to the current polygon being drawn
       if (!isDrawing || polygonCompleted) return;
@@ -86,7 +143,7 @@ const App = () => {
         const dist = Math.sqrt((x - firstPoint.x) ** 2 + (y - firstPoint.y) ** 2);
         if (dist < 10) {
           setIsDrawing(false); // Stop drawing
-          setPolygons([...polygons, { points: [...points], color: fillColor }]); // Save completed polygon with fill color
+          setPolygons([...polygons, { points: [...points], fillColor, strokeColor }]); // Save completed polygon with fill and stroke color
           setPolygonCompleted(true);
           return;
         }
@@ -100,7 +157,7 @@ const App = () => {
     if (polygonCompleted) {
       setPoints([]); // Reset points for new polygon
       setPolygonCompleted(false);
-      setSelectedPolygonIndex(null); // Deselect any selected polygon
+      setSelectedPolygonIndices([]); // Deselect all selected polygons
     }
     setIsDrawing(true); // Enable drawing
   };
@@ -110,17 +167,34 @@ const App = () => {
     setPolygons([]);
     setIsDrawing(false);
     setPolygonCompleted(false);
-    setSelectedPolygonIndex(null);
+    setSelectedPolygonIndices([]);
   };
 
   const changeFillColor = (e) => {
     const color = e.target.value;
     setFillColor(color);
 
-    // If a polygon is selected, update its fill color
-    if (selectedPolygonIndex !== null) {
+    console.log("selected polygons", selectedPolygonIndices);
+    // If any polygons are selected, update their fill color
+    if (selectedPolygonIndices.length > 0) {
       const updatedPolygons = [...polygons];
-      updatedPolygons[selectedPolygonIndex].fillColor = color;
+      selectedPolygonIndices.forEach((index) => {
+        updatedPolygons[index].fillColor = color;
+      });
+      setPolygons(updatedPolygons);
+    }
+  };
+
+  const changeStrokeColor = (e) => {
+    const color = e.target.value;
+    setStrokeColor(color);
+
+    // If any polygons are selected, update their stroke color
+    if (selectedPolygonIndices.length > 0) {
+      const updatedPolygons = [...polygons];
+      selectedPolygonIndices.forEach((index) => {
+        updatedPolygons[index].strokeColor = color;
+      });
       setPolygons(updatedPolygons);
     }
   };
@@ -138,11 +212,15 @@ const App = () => {
       <div>
         <button onClick={startDrawing}>Desenhar Polígono</button>
         <button onClick={clearCanvas}>Limpar</button>
-        <input
-          type="color"
-          value={fillColor}
-          onChange={changeFillColor}
-        />
+        <button onClick={deleteSelectedPolygons}>Remover Selecionados</button>
+        <div>
+          <label>Fill Color:</label>
+          <input type="color" value={fillColor} onChange={changeFillColor} />
+        </div>
+        <div>
+          <label>Edge Color:</label>
+          <input type="color" value={strokeColor} onChange={changeStrokeColor} />
+        </div>
       </div>
     </div>
   );
