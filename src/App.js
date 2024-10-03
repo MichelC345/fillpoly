@@ -21,6 +21,7 @@ const App = () => {
   const [strokeColor, setStrokeColor] = useState("yellow"); // Default edge color
   const [isDrawing, setIsDrawing] = useState(false); // Toggle drawing mode
   const [polygonCompleted, setPolygonCompleted] = useState(false); // Flag for completed polygon
+  const [allPolygonsCompleted, setAllPolygonsCompleted] = useState(false);
 
   const canvasRef = useRef(null);
 
@@ -34,6 +35,7 @@ const App = () => {
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear canvas
     polygons.forEach((polygon, index) => {
       const isSelected = selectedPolygonIndices.includes(index);
+      console.log("poligono", index, isSelected);
       drawPolygon(
         ctx,
         polygon.points,
@@ -43,6 +45,9 @@ const App = () => {
         isSelected
       ); // Redraw all completed polygons with selection effect
     });
+    if (allPolygonsCompleted) {
+      return;
+    }
     drawPolygon(ctx, points, polygonCompleted, fillColor, strokeColor, false); // Draw the polygon being created
   };
 
@@ -51,6 +56,7 @@ const App = () => {
     const updatedPolygons = polygons.filter(
       (polygon, index) => !selectedPolygonIndices.includes(index)
     );
+    setAllPolygonsCompleted(true);
     setPolygons(updatedPolygons);
     setSelectedPolygonIndices([]); // Clear selection
   };
@@ -74,6 +80,7 @@ const App = () => {
 
     // Apply visual effects for selected polygon
     if (isSelected) {
+      //console.log("aplicando efeito");
       ctx.lineWidth = 5; // Thicker stroke for selected polygon
       ctx.strokeStyle = "red"; // Change the stroke color for selected polygon
       ctx.shadowBlur = 15; // Add shadow/glow effect
@@ -134,6 +141,7 @@ const App = () => {
         // Otherwise, select it
         setSelectedPolygonIndices([...selectedPolygonIndices, clickedPolygonIndex]);
       }
+      console.log("selected polygons", selectedPolygonIndices);
     } else {
       // Add new point to the current polygon being drawn
       if (!isDrawing || polygonCompleted) return;
@@ -143,6 +151,7 @@ const App = () => {
         const dist = Math.sqrt((x - firstPoint.x) ** 2 + (y - firstPoint.y) ** 2);
         if (dist < 10) {
           setIsDrawing(false); // Stop drawing
+          setAllPolygonsCompleted(false);
           setPolygons([...polygons, { points: [...points], fillColor, strokeColor }]); // Save completed polygon with fill and stroke color
           setPolygonCompleted(true);
           return;
@@ -158,6 +167,7 @@ const App = () => {
       setPoints([]); // Reset points for new polygon
       setPolygonCompleted(false);
       setSelectedPolygonIndices([]); // Deselect all selected polygons
+      setAllPolygonsCompleted(false);
     }
     setIsDrawing(true); // Enable drawing
   };
@@ -168,6 +178,7 @@ const App = () => {
     setIsDrawing(false);
     setPolygonCompleted(false);
     setSelectedPolygonIndices([]);
+    setAllPolygonsCompleted(false);
   };
 
   const changeFillColor = (e) => {
@@ -181,6 +192,7 @@ const App = () => {
       selectedPolygonIndices.forEach((index) => {
         updatedPolygons[index].fillColor = color;
       });
+      setAllPolygonsCompleted(true);
       setPolygons(updatedPolygons);
     }
   };
@@ -195,6 +207,7 @@ const App = () => {
       selectedPolygonIndices.forEach((index) => {
         updatedPolygons[index].strokeColor = color;
       });
+      setAllPolygonsCompleted(true);
       setPolygons(updatedPolygons);
     }
   };
