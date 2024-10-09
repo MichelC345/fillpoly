@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
+import fillpoly from "./utils/fillpoly";
 
 // Helper function: Check if a point is inside a polygon using ray-casting algorithm
 function isPointInPolygon(x, y, polygon) {
@@ -73,9 +74,10 @@ const App = () => {
     }
 
     if (completed) {
-      ctx.lineTo(pointsArray[0].x, pointsArray[0].y); // Close polygon
+      /*ctx.lineTo(pointsArray[0].x, pointsArray[0].y); // Close polygon
       ctx.fillStyle = fill;
-      ctx.fill();
+      ctx.fill(); */
+      fillpoly(ctx, pointsArray, fill);
     }
 
     // Apply visual effects for selected polygon
@@ -126,6 +128,7 @@ const App = () => {
     let clickedPolygonIndex = null;
     polygons.forEach((polygon, index) => {
       if (isPointInPolygon(x, y, polygon.points)) {
+        console.log("ponto dentro", index);
         clickedPolygonIndex = index;
       }
     });
