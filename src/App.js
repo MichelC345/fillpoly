@@ -33,6 +33,7 @@ const App = () => {
   }, [polygons, points, selectedPolygonIndices]);
 
   const redrawAllPolygons = (ctx) => {
+    console.log("redesenhando");
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear canvas
     polygons.forEach((polygon, index) => {
       const isSelected = selectedPolygonIndices.includes(index);
@@ -49,6 +50,7 @@ const App = () => {
     if (allPolygonsCompleted) {
       return;
     }
+    //console.log("allpolycomplet", allPolygonsCompleted);
     drawPolygon(ctx, points, polygonCompleted, fillColor, strokeColor, false); // Draw the polygon being created
   };
 
@@ -65,6 +67,21 @@ const App = () => {
 
   const drawPolygon = (ctx, pointsArray, completed, fill, stroke, isSelected) => {
     if (pointsArray.length < 2) return;
+    console.log("desenhando polígono", pointsArray, stroke);
+
+    // Apply visual effects for selected polygon
+    if (isSelected) {
+      console.log("aplicando efeito");
+      ctx.lineWidth = 5; // Thicker stroke for selected polygon
+      ctx.strokeStyle = "red"; // Change the stroke color for selected polygon
+      ctx.shadowBlur = 15; // Add shadow/glow effect
+      ctx.shadowColor = "rgba(255, 0, 0, 0.8)"; // Glow color
+    } else {
+      console.log("sem efeitos");
+      ctx.lineWidth = 2; // Normal stroke width
+      ctx.strokeStyle = stroke; // Regular stroke color
+      ctx.shadowBlur = 0; // No shadow for non-selected polygons
+    }
 
     ctx.beginPath();
     ctx.moveTo(pointsArray[0].x, pointsArray[0].y);
@@ -77,21 +94,10 @@ const App = () => {
       /*ctx.lineTo(pointsArray[0].x, pointsArray[0].y); // Close polygon
       ctx.fillStyle = fill;
       ctx.fill(); */
-      fillpoly(ctx, pointsArray, fill);
+      ctx.lineTo(pointsArray[0].x, pointsArray[0].y);
+      fillpoly(ctx, pointsArray, fill, stroke);
     }
 
-    // Apply visual effects for selected polygon
-    if (isSelected) {
-      //console.log("aplicando efeito");
-      ctx.lineWidth = 5; // Thicker stroke for selected polygon
-      ctx.strokeStyle = "red"; // Change the stroke color for selected polygon
-      ctx.shadowBlur = 15; // Add shadow/glow effect
-      ctx.shadowColor = "rgba(255, 0, 0, 0.8)"; // Glow color
-    } else {
-      ctx.lineWidth = 2; // Normal stroke width
-      ctx.strokeStyle = stroke; // Regular stroke color
-      ctx.shadowBlur = 0; // No shadow for non-selected polygons
-    }
 
     ctx.stroke();
 
@@ -149,12 +155,12 @@ const App = () => {
       // Add new point to the current polygon being drawn
       if (!isDrawing || polygonCompleted) return;
 
-      if (points.length > 0) {
+      if (points.length > 0) { //último vértice inserido perto do primeiro ponto, então o polígono estará completo
         const firstPoint = points[0];
         const dist = Math.sqrt((x - firstPoint.x) ** 2 + (y - firstPoint.y) ** 2);
         if (dist < 10) {
           setIsDrawing(false); // Stop drawing
-          setAllPolygonsCompleted(false);
+          setAllPolygonsCompleted(true);
           setPolygons([...polygons, { points: [...points], fillColor, strokeColor }]); // Save completed polygon with fill and stroke color
           setPolygonCompleted(true);
           return;
@@ -203,6 +209,7 @@ const App = () => {
   const changeStrokeColor = (e) => {
     const color = e.target.value;
     setStrokeColor(color);
+    console.log("atualizando cor das arestas");
 
     // If any polygons are selected, update their stroke color
     if (selectedPolygonIndices.length > 0) {

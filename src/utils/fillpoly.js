@@ -1,4 +1,4 @@
-const fillpoly = (ctx, polygonPoints, fillColor) => {
+const fillpoly = (ctx, polygonPoints, fillColor, strokeColor) => {
     // Set fill style
     ctx.fillStyle = fillColor;
 
@@ -37,7 +37,7 @@ const fillpoly = (ctx, polygonPoints, fillColor) => {
             ctx.beginPath();
             ctx.moveTo(startX, y);
             ctx.lineTo(endX, y);
-            ctx.strokeStyle = fillColor;
+            ctx.strokeStyle = strokeColor;
             ctx.stroke();
         }
     }
