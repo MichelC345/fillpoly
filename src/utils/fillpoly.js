@@ -1,4 +1,4 @@
-const fillpoly = (ctx, polygonPoints, fillColor, strokeColor) => {
+const fillpoly = (ctx, polygonPoints, fillColor) => {
     // Set fill style
     ctx.fillStyle = fillColor;
 
@@ -37,8 +37,12 @@ const fillpoly = (ctx, polygonPoints, fillColor, strokeColor) => {
             ctx.beginPath();
             ctx.moveTo(startX, y);
             ctx.lineTo(endX, y);
-            ctx.strokeStyle = strokeColor;
-            ctx.stroke();
+            //ctx.strokeStyle = fillColor;
+            //ctx.stroke();
+            ctx.lineTo(endX, y + 1); // Advance to the next pixel row for seamless fill
+            ctx.lineTo(startX, y + 1);
+            ctx.closePath();
+            ctx.fill();
         }
     }
 };

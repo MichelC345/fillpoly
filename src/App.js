@@ -72,13 +72,13 @@ const App = () => {
     // Apply visual effects for selected polygon
     if (isSelected) {
       console.log("aplicando efeito");
-      ctx.lineWidth = 5; // Thicker stroke for selected polygon
+      ctx.lineWidth = 10; // Thicker stroke for selected polygon
       ctx.strokeStyle = "red"; // Change the stroke color for selected polygon
       ctx.shadowBlur = 15; // Add shadow/glow effect
       ctx.shadowColor = "rgba(255, 0, 0, 0.8)"; // Glow color
     } else {
       console.log("sem efeitos");
-      ctx.lineWidth = 2; // Normal stroke width
+      ctx.lineWidth = 5; // Normal stroke width
       ctx.strokeStyle = stroke; // Regular stroke color
       ctx.shadowBlur = 0; // No shadow for non-selected polygons
     }
@@ -95,7 +95,8 @@ const App = () => {
       ctx.fillStyle = fill;
       ctx.fill(); */
       ctx.lineTo(pointsArray[0].x, pointsArray[0].y);
-      fillpoly(ctx, pointsArray, fill, stroke);
+      ctx.stroke();
+      fillpoly(ctx, pointsArray, fill);
     }
 
 
