@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
 import fillpoly from "./utils/fillpoly";
 
-// Helper function: Check if a point is inside a polygon using ray-casting algorithm
+//Nesta função utiliza-se o algoritmo de ray-casting para verificar se um ponto está contido em um polígono
 function isPointInPolygon(x, y, polygon) {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -15,29 +15,41 @@ function isPointInPolygon(x, y, polygon) {
 }
 
 const App = () => {
-  const [points, setPoints] = useState([]); // Current points for the polygon
-  const [polygons, setPolygons] = useState([]); // Store all completed polygons
-  const [selectedPolygonIndices, setSelectedPolygonIndices] = useState([]); // Track selected polygons
-  const [fillColor, setFillColor] = useState("rgba(0, 150, 255, 0.5)"); // Default fill color
-  const [strokeColor, setStrokeColor] = useState("yellow"); // Default edge color
-  const [isDrawing, setIsDrawing] = useState(false); // Toggle drawing mode
-  const [polygonCompleted, setPolygonCompleted] = useState(false); // Flag for completed polygon
+  // Lista de pontos para o polígono atual
+  const [points, setPoints] = useState([]);
+  // Lista para armazenar os polígonos
+  const [polygons, setPolygons] = useState([]);
+  // Lista para armazenar os índices dos polígonos selecionados
+  const [selectedPolygonIndices, setSelectedPolygonIndices] = useState([]);
+  // Variável que determina a cor de preenchimento
+  const [fillColor, setFillColor] = useState("blue");
+  // Variável que determina a cor da aresta
+  const [strokeColor, setStrokeColor] = useState("yellow");
+  // isDrawing é uma condição booleana que determina se o usuário pode desenhar ou não
+  const [isDrawing, setIsDrawing] = useState(false);
+  // polygonCompleted determina se o polígono mais recente está completo
+  const [polygonCompleted, setPolygonCompleted] = useState(false);
+  // allPolygonsCompleted diz se todos os polígonos estão completos
   const [allPolygonsCompleted, setAllPolygonsCompleted] = useState(false);
 
   const canvasRef = useRef(null);
 
+  /*
+  Sempre que houver alterações na lista global de polígonos, na lista de pontos ou na lista de polígonos selecionados, 
+  a exibição será atualizada e a função de redesenhar será executada para refletir as atualizações.
+  */
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     redrawAllPolygons(ctx);
   }, [polygons, points, selectedPolygonIndices]);
 
+
+  //Função para redesenhar os polígonos e refletir alterações
   const redrawAllPolygons = (ctx) => {
-    console.log("redesenhando");
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear canvas
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); //Limpa o quadro
     polygons.forEach((polygon, index) => {
       const isSelected = selectedPolygonIndices.includes(index);
-      console.log("poligono", index, isSelected);
       drawPolygon(
         ctx,
         polygon.points,
@@ -45,143 +57,149 @@ const App = () => {
         polygon.fillColor,
         polygon.strokeColor,
         isSelected
-      ); // Redraw all completed polygons with selection effect
+      ); //Desenha cada polígono completo aplicando o efeito de seleção, caso se aplique
     });
+    //Para evitar redesenhar o último polígono caso o mesmo esteja completo, interrompe a função caso todos
+    //os polígonos estejam completos
     if (allPolygonsCompleted) {
       return;
     }
-    //console.log("allpolycomplet", allPolygonsCompleted);
-    drawPolygon(ctx, points, polygonCompleted, fillColor, strokeColor, false); // Draw the polygon being created
+    //senão, desenha as arestas criadas até o momento
+    drawPolygon(ctx, points, polygonCompleted, fillColor, strokeColor, false);
   };
 
   const deleteSelectedPolygons = () => {
-    // Remove all polygons whose indices are in selectedPolygonIndices
+    //Remove todos os polígonos selecionados: ou seja, cujo índice está em selectedPolygonIndices
     const updatedPolygons = polygons.filter(
       (polygon, index) => !selectedPolygonIndices.includes(index)
     );
     setAllPolygonsCompleted(true);
     setPolygons(updatedPolygons);
-    setSelectedPolygonIndices([]); // Clear selection
+    setSelectedPolygonIndices([]); // Esvazia a lista de selecionados
   };
 
 
+  //Função para desenhar um polígono
   const drawPolygon = (ctx, pointsArray, completed, fill, stroke, isSelected) => {
+    //Deve ter ao menos 3 vértices
     if (pointsArray.length < 2) return;
-    console.log("desenhando polígono", pointsArray, stroke);
 
-    // Apply visual effects for selected polygon
     if (isSelected) {
-      console.log("aplicando efeito");
-      ctx.lineWidth = 10; // Thicker stroke for selected polygon
-      ctx.strokeStyle = "red"; // Change the stroke color for selected polygon
-      ctx.shadowBlur = 15; // Add shadow/glow effect
-      ctx.shadowColor = "rgba(255, 0, 0, 0.8)"; // Glow color
+      //Caso o polígono esteja selecionado, aplica os efeitos de seleção
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = "red";
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = "rgba(255, 0, 0, 0.8)";
     } else {
-      console.log("sem efeitos");
-      ctx.lineWidth = 5; // Normal stroke width
-      ctx.strokeStyle = stroke; // Regular stroke color
-      ctx.shadowBlur = 0; // No shadow for non-selected polygons
+      //Caso contrário, desenha normalmente
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = stroke;
+      ctx.shadowBlur = 0;
     }
 
+    //Traça um caminho começando pelo ponto inicial
     ctx.beginPath();
     ctx.moveTo(pointsArray[0].x, pointsArray[0].y);
 
     for (let i = 1; i < pointsArray.length; i++) {
+      //Desenha arestas passando pelos pontos adjacentes
       ctx.lineTo(pointsArray[i].x, pointsArray[i].y);
     }
 
     if (completed) {
-      /*ctx.lineTo(pointsArray[0].x, pointsArray[0].y); // Close polygon
-      ctx.fillStyle = fill;
-      ctx.fill(); */
+      //Caso o polígono esteja completo, desenha a última aresta para fechar
       ctx.lineTo(pointsArray[0].x, pointsArray[0].y);
       ctx.stroke();
+      //Executa o algoritmo de preenchimento de cor
       fillpoly(ctx, pointsArray, fill);
     }
 
 
     ctx.stroke();
 
-    // Draw circles at each point and label them alphabetically
+    // Cada ponto será desenhado como um círculo e nomeado alfabeticamente
     pointsArray.forEach((point, index) => {
       drawPoint(ctx, point.x, point.y, index);
     });
   };
 
+  //Função para desenhar um ponto
   const drawPoint = (ctx, x, y, index) => {
-    const radius = 5; // Circle radius for each point
-    const label = String.fromCharCode(65 + index); // Convert index to a letter (A, B, C...)
+    const radius = 5; // Cada ponto será um círculo de raio 5
+    const label = String.fromCharCode(65 + index); // Cada ponto será representado na ordem alfabética A, B, C, ...
 
-    // Draw the circle at the point
+    // Desenha o círculo
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI);
-    ctx.fillStyle = "red"; // Color for the point circle
+    ctx.fillStyle = "red";
     ctx.fill();
-    ctx.stroke(); // Outline the circle
+    ctx.stroke();
 
-    // Draw the label next to the point
+    // Desenha a letra atribuída ao ponto
     ctx.font = "16px Arial";
     ctx.fillStyle = "black";
-    ctx.fillText(label, x + 8, y - 8); // Offset the label to appear next to the point
+    ctx.fillText(label, x + 8, y - 8); // Desloca o nome para que apareça próximo do círculo
   };
 
+  //Função para determinar o que fazer quando o usuário clica no quadro
   const handleCanvasClick = (event) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    // Check if the click is inside an existing polygon
+    // Verifica se o click está contido em algum polígono
     let clickedPolygonIndex = null;
     polygons.forEach((polygon, index) => {
       if (isPointInPolygon(x, y, polygon.points)) {
-        console.log("ponto dentro", index);
         clickedPolygonIndex = index;
       }
     });
 
     if (clickedPolygonIndex !== null) {
-      // A polygon is clicked, toggle its selection state
+      //Caso o usuário tenha clicado dentro da área de algum polígono, muda o estado selecionado desse polígono
       if (selectedPolygonIndices.includes(clickedPolygonIndex)) {
-        // If it's already selected, deselect it
+        // Caso esteja selecionado, remove da lista de selecionados
         setSelectedPolygonIndices(
           selectedPolygonIndices.filter((i) => i !== clickedPolygonIndex)
         );
       } else {
-        // Otherwise, select it
+        // Senão, adiciona na lista
         setSelectedPolygonIndices([...selectedPolygonIndices, clickedPolygonIndex]);
       }
-      console.log("selected polygons", selectedPolygonIndices);
-    } else {
-      // Add new point to the current polygon being drawn
+    } else { //Caso nenhum polígono tenha sido selecionado
       if (!isDrawing || polygonCompleted) return;
 
-      if (points.length > 0) { //último vértice inserido perto do primeiro ponto, então o polígono estará completo
+      if (points.length > 0) {
         const firstPoint = points[0];
         const dist = Math.sqrt((x - firstPoint.x) ** 2 + (y - firstPoint.y) ** 2);
-        if (dist < 10) {
-          setIsDrawing(false); // Stop drawing
+        if (dist < 10) { //Caso o click tenha sido próximo ao primeiro ponto, completa o polígono e interrompe a função
+          setIsDrawing(false); // Para de desenhar
           setAllPolygonsCompleted(true);
-          setPolygons([...polygons, { points: [...points], fillColor, strokeColor }]); // Save completed polygon with fill and stroke color
+          // Adiciona o novo polígono na lista incluindo sua lista de pontos e suas cores de preenchimento e aresta
+          setPolygons([...polygons, { points: [...points], fillColor, strokeColor }]);
           setPolygonCompleted(true);
           return;
         }
       }
 
-      setPoints([...points, { x, y }]); // Add new point to current polygon
+      // Adiciona um novo ponto para o polígono sendo desenhado
+      setPoints([...points, { x, y }]);
     }
   };
 
+  //Função para permitir que o usuário desenhe um novo polígono
   const startDrawing = () => {
     if (polygonCompleted) {
-      setPoints([]); // Reset points for new polygon
+      setPoints([]); // Reseta o array de pontos para armazenar o novo polígono
       setPolygonCompleted(false);
-      setSelectedPolygonIndices([]); // Deselect all selected polygons
+      setSelectedPolygonIndices([]); // Remove a seleção dos polígonos selecionados
       setAllPolygonsCompleted(false);
     }
-    setIsDrawing(true); // Enable drawing
+    setIsDrawing(true); // Permite o desenho
   };
 
+  //Função para limpar o quadro: zera todas as listas e atualiza as flags
   const clearCanvas = () => {
     setPoints([]);
     setPolygons([]);
@@ -191,12 +209,12 @@ const App = () => {
     setAllPolygonsCompleted(false);
   };
 
+  //Função para alterar a cor de prenenchimento
   const changeFillColor = (e) => {
     const color = e.target.value;
     setFillColor(color);
 
-    console.log("selected polygons", selectedPolygonIndices);
-    // If any polygons are selected, update their fill color
+    // Percorre a lista de polígonos selecionados atualizando as suas cores
     if (selectedPolygonIndices.length > 0) {
       const updatedPolygons = [...polygons];
       selectedPolygonIndices.forEach((index) => {
@@ -207,12 +225,12 @@ const App = () => {
     }
   };
 
+//Função para alterar cor da aresta
   const changeStrokeColor = (e) => {
     const color = e.target.value;
     setStrokeColor(color);
-    console.log("atualizando cor das arestas");
 
-    // If any polygons are selected, update their stroke color
+    //Percorre a lista de polígonos atualizando suas cores de arestas
     if (selectedPolygonIndices.length > 0) {
       const updatedPolygons = [...polygons];
       selectedPolygonIndices.forEach((index) => {
@@ -221,11 +239,12 @@ const App = () => {
       setAllPolygonsCompleted(true);
       setPolygons(updatedPolygons);
     }
+    setStrokeColor("yellow"); //Retoma a cor de aresta padrão
   };
 
   return (
     <div>
-      <h2>Click to draw a polygon</h2>
+      <h2>Clique para desenhar um polígono</h2>
       <canvas
         id="polygonCanvas"
         ref={canvasRef}
@@ -238,11 +257,11 @@ const App = () => {
         <button onClick={clearCanvas}>Limpar</button>
         <button onClick={deleteSelectedPolygons}>Remover Selecionados</button>
         <div>
-          <label>Fill Color:</label>
+          <label>Cor de Preenchimento:</label>
           <input type="color" value={fillColor} onChange={changeFillColor} />
         </div>
         <div>
-          <label>Edge Color:</label>
+          <label>Cor da Aresta:</label>
           <input type="color" value={strokeColor} onChange={changeStrokeColor} />
         </div>
       </div>
