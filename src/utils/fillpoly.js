@@ -5,56 +5,71 @@ polygonPoints - a lista de pontos/vértices do polígono
 fillColor - a cor de preenchimento
 */
 
+const drawLine = (ctx, xi, xf, y, color) => {
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.lineTo(xi, y);
+    ctx.lineTo(xf, y);
+    ctx.stroke();
+}
+
 const fillpoly = (ctx, polygonPoints, fillColor) => {
+    //console.log("executando fillpoly");
     // Determina a cor
     ctx.fillStyle = fillColor;
+
+    //Armazena as arestas do polígono
+    let edges = []
+    for (let i = 0; i < polygonPoints.length; i++) {
+        let j = (i + 1) % polygonPoints.length;
+        //Para cada ponto Pi, obtém o seu ponto adjacente Pj e armazena a aresta PiPj
+        const xi = polygonPoints[i].x;
+        const yi = polygonPoints[i].y;
+        const xf = polygonPoints[j].x;
+        const yf = polygonPoints[j].y;
+        if (yi === yf) {
+            continue; //Arestas horizontais não serão processadas
+        }else if (yi < yf) { //Verifica quais serão os pontos inicial e final
+            edges.push({xi: xi, yi: yi, xf: xf, yf: yf});
+        }else {
+            edges.push({xi: xf, yi: yf, xf: xi, yf: yi});
+        }
+    }
 
     // Obtém os pontos mínimo e máximo em Y
     const minY = Math.min(...polygonPoints.map(point => point.y));
     const maxY = Math.max(...polygonPoints.map(point => point.y));
+    //console.log("tamanho esperado", maxY-minY);
+    
 
-    //Percorre todas as scanlines (n° de scanlines = maxY - minY)
-    for (let y = minY; y <= maxY; y++) {
-        //Prepara um array vazio para armazenar os pontos de interseção com a scanline atual
-        let intersections = [];
-
-        // Encontra as interseções do polígono na scanline atual
-        for (let i = 0; i < polygonPoints.length; i++) {
-            let j = (i + 1) % polygonPoints.length;
-            //Para cada ponto Pi, obtém o seu ponto adjacente Pj e verifica a aresta PiPj
-            const x1 = polygonPoints[i].x;
-            const y1 = polygonPoints[i].y;
-            const x2 = polygonPoints[j].x;
-            const y2 = polygonPoints[j].y;
-
-            // Check if the edge crosses the scanline
-            //Verifica se a aresta PiPj faz interseção com a scanline
-            if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
-                const intersectX = x1 + ((y - y1) * (x2 - x1)) / (y2 - y1);
-                intersections.push(intersectX);
-            }
+    //Prepara a lista de interseções para armazenar um n° de listas igual a Ns = maxY - minY.
+    let intersections = [];
+    for (let i = 0;i < maxY-minY;i++) { //Inicializa a lista
+        intersections[i] = [];
+    }
+    //Processamento de arestas
+    for (let i = 0;i < edges.length;i++) {
+        //console.log("aresta", edges[i]);
+        //Cálculo do coeficiente
+        let m_inversed = (edges[i].xf - edges[i].xi) / (edges[i].yf - edges[i].yi);
+        //Cálculo do índice na lista de interseções
+        let x = edges[i].xi;
+        for (let y = edges[i].yi;y < edges[i].yf;y++) {
+            let index = y - minY;
+            intersections[index].push(x);
+            x += m_inversed;
         }
+    }
 
-        //Ordena as interseções em ordem crescente
-        intersections.sort((a, b) => a - b);
+    //Ordena as interseções em ordem crescente
+    for (let i = 0; i < intersections.length; i++) {
+        intersections[i].sort((a, b) => a - b);
+    }
 
-        //Percorre os "blocos" representados por cada par de pontos da lista de interseções
-        for (let i = 0; i < intersections.length; i += 2) {
-            const startX = intersections[i]; //início do bloco
-            const endX = intersections[i + 1]; //fim do bloco
-
-            // Preenchimento dos pixels entre as interseções
-            //inicia o caminho para indicar a área delimitada
-            ctx.beginPath();
-            ctx.moveTo(startX, y); //começa pelo ponto superior esquerdo
-            ctx.lineTo(endX, y); //ponto superior direito
-            //avança para a próxima linha para um preenchimento perfeito
-            ctx.lineTo(endX, y + 1); // ponto inferior direito
-            ctx.lineTo(startX, y + 1); //ponto inferior esquerdo
-            //fecha o caminho indicando a área delimitada formada por 4 pontos
-            ctx.closePath();
-            //executa a rasterização na área delimitada
-            ctx.fill();
+    //Executa a rasterização nas áreas delimitadas
+    for (let i = 0;i < intersections.length;i++) {
+        for (let j = 0;j < intersections[i].length-1;j += 2) {
+            drawLine(ctx, Math.ceil(intersections[i][j]), Math.floor(intersections[i][j+1]), i+minY, fillColor);
         }
     }
 };

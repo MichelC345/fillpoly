@@ -67,7 +67,8 @@ const App = () => {
     //senão, desenha as arestas criadas até o momento
     drawPolygon(ctx, points, polygonCompleted, fillColor, strokeColor, false);
   };
-
+  
+  //Função para remover polígonos selecionados
   const deleteSelectedPolygons = () => {
     //Remove todos os polígonos selecionados: ou seja, cujo índice está em selectedPolygonIndices
     const updatedPolygons = polygons.filter(
@@ -78,12 +79,8 @@ const App = () => {
     setSelectedPolygonIndices([]); // Esvazia a lista de selecionados
   };
 
-
-  //Função para desenhar um polígono
-  const drawPolygon = (ctx, pointsArray, completed, fill, stroke, isSelected) => {
-    //Deve ter ao menos 3 vértices
-    if (pointsArray.length < 2) return;
-
+  //Função para desenhar as arestas do polígono
+  const drawPolygonEdges = (ctx, pointsArray, completed, strokeColor, isSelected) => {
     if (isSelected) {
       //Caso o polígono esteja selecionado, aplica os efeitos de seleção
       ctx.lineWidth = 10;
@@ -93,7 +90,7 @@ const App = () => {
     } else {
       //Caso contrário, desenha normalmente
       ctx.lineWidth = 5;
-      ctx.strokeStyle = stroke;
+      ctx.strokeStyle = strokeColor;
       ctx.shadowBlur = 0;
     }
 
@@ -105,17 +102,28 @@ const App = () => {
       //Desenha arestas passando pelos pontos adjacentes
       ctx.lineTo(pointsArray[i].x, pointsArray[i].y);
     }
-
     if (completed) {
       //Caso o polígono esteja completo, desenha a última aresta para fechar
       ctx.lineTo(pointsArray[0].x, pointsArray[0].y);
-      ctx.stroke();
-      //Executa o algoritmo de preenchimento de cor
+    }
+    ctx.stroke();
+  };
+
+  //Função para desenhar um polígono
+  const drawPolygon = (ctx, pointsArray, completed, fill, stroke, isSelected) => {
+    //Deve ter ao menos 3 vértices
+    if (pointsArray.length < 2) return;
+
+    //Caso esteja completo, executa o algoritmo de preenchimento
+    if (completed) {
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = stroke;
+      ctx.shadowBlur = 0;
       fillpoly(ctx, pointsArray, fill);
     }
 
-
-    ctx.stroke();
+    //Desenha as arestas
+    drawPolygonEdges(ctx, pointsArray, completed, stroke, isSelected);
 
     // Cada ponto será desenhado como um círculo e nomeado alfabeticamente
     pointsArray.forEach((point, index) => {
